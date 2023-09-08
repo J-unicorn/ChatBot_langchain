@@ -73,7 +73,7 @@ class StreamlitChatbotApp():
             st.info("Please upload PDF documents to continue.")
             st.stop()
 
-        retriever = self.configure_retriever(uploaded_files)
+        retriever = configure_retriever(uploaded_files)
 
         # Setup memory for contextual conversation
         msgs = StreamlitChatMessageHistory()
