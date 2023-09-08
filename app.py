@@ -15,6 +15,7 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.vectorstores import DocArrayInMemorySearch
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+openai_api_key =  os.environ.get('OpenAI_key')
 st.set_page_config(page_title="Chatbot via PDF", page_icon="🦜")
 st.title("Chatbot via PDF")
 
@@ -143,6 +144,6 @@ class PrintRetrievalHandler(BaseCallbackHandler):
 if __name__ == "__main__":
 
 
-    openai_api_key =  os.environ.get('OpenAI_key')
+
     app = StreamlitChatbotApp(openai_api_key=openai_api_key)
     app.run()
