@@ -18,6 +18,42 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 st.set_page_config(page_title="Chatbot via PDF", page_icon="🦜")
 st.title("Chatbot via PDF")
 
+def configure_retriever(uploaded_files):
+    # Read documents
+    docs = []
+
+    for file in uploaded_files:
+
+        pdf_reader = PdfReader(file)
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text()
+        
+
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=2000,
+            chunk_overlap=500,
+            length_function=len
+            )
+        chunks = text_splitter.split_text(text=text)
+
+
+        store_name = file.name[:-4]
+        st.write(f'{store_name}')
+
+        if os.path.exists(f"{store_name}.pkl"):
+            with open(f"{store_name}.pkl", "rb") as f:
+                VectorStore = pickle.load(f)
+        else:
+            embeddings = OpenAIEmbeddings(openai_api_key = openai_api_key )
+            VectorStore = FAISS.from_texts(chunks, embedding=embeddings)
+            with open(f"{store_name}.pkl", "wb") as f:
+                pickle.dump(VectorStore, f)
+
+    # Define retriever
+    retriever = VectorStore.as_retriever(search_type="mmr", search_kwargs={"k": 2, "fetch_k": 4})
+
+    return retriever
 
 class StreamlitChatbotApp():
     def __init__(self,openai_api_key):
@@ -66,44 +102,8 @@ class StreamlitChatbotApp():
                 retrieval_handler = PrintRetrievalHandler(st.container())
                 stream_handler = StreamHandler(st.empty())
                 response = qa_chain.run(user_query, callbacks=[retrieval_handler, stream_handler])
+                
 
-    @st.cache_resource(ttl="1h")
-    def configure_retriever(self,uploaded_files):
-        # Read documents
-        docs = []
-
-        for file in uploaded_files:
-    
-            pdf_reader = PdfReader(file)
-            text = ""
-            for page in pdf_reader.pages:
-                text += page.extract_text()
-            
-
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=2000,
-                chunk_overlap=500,
-                length_function=len
-                )
-            chunks = text_splitter.split_text(text=text)
-
-
-            store_name = file.name[:-4]
-            st.write(f'{store_name}')
-
-            if os.path.exists(f"{store_name}.pkl"):
-                with open(f"{store_name}.pkl", "rb") as f:
-                    VectorStore = pickle.load(f)
-            else:
-                embeddings = OpenAIEmbeddings(openai_api_key = openai_api_key )
-                VectorStore = FAISS.from_texts(chunks, embedding=embeddings)
-                with open(f"{store_name}.pkl", "wb") as f:
-                    pickle.dump(VectorStore, f)
-
-        # Define retriever
-        retriever = VectorStore.as_retriever(search_type="mmr", search_kwargs={"k": 2, "fetch_k": 4})
-
-        return retriever
 
 
 class StreamHandler(BaseCallbackHandler):
